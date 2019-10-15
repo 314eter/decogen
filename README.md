@@ -1,6 +1,6 @@
 # decogen
 
-Generate local summetry-preserving operations
+P. Goetschalckx, K. Coolsaet, N. Van Cleemput. “Generation of Local Symmetry-Preserving Operations” (2019). arXiv: [1908.11622](https://arxiv.org/abs/1908.11622).
 
 ## Usage
 
