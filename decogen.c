@@ -927,7 +927,7 @@ int main(int argc, char *argv[]) {
       case 'c':
         CONNECTIVITY = strtol(optarg, NULL, 10);
         if (CONNECTIVITY < 1 || CONNECTIVITY > 3) {
-          fprintf(stderr, "Connectivity has to be 1, 2 or 3.\n", argv[optind]);
+          fprintf(stderr, "Connectivity has to be 1, 2 or 3.\n");
           return 1;
         }
         break;
