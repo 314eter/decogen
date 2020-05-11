@@ -29,6 +29,10 @@ unsigned long long wrongconnectivity = 0;
 int OUTPUT = 0;
 int ALL = 0;
 int CONNECTIVITY = 3;
+int RES = 0;
+int MOD = 1;
+int SPLIT_LEVEL = 3;
+int level_index = 0;
 FILE *OUTFILE;
 
 static void testcanon_init(PreDeco *pd, Edge *edge, int representation[]) {
@@ -617,7 +621,7 @@ void select1(PreDeco *pd) {
   }
 }
 
-void grow(PreDeco*);
+void grow(PreDeco*, int);
 
 int edge_exists(PreDeco *pd, int vertex1, int vertex2) {
   Edge *edge = pd->firstedge[vertex1];
@@ -627,7 +631,7 @@ int edge_exists(PreDeco *pd, int vertex1, int vertex2) {
   return 0;
 }
 
-void try_construct(PreDeco *pd, void (*construct)(PreDeco*, Edge*), void (*destruct)(PreDeco*, Edge*), int construction) {
+void try_construct(PreDeco *pd, void (*construct)(PreDeco*, Edge*), void (*destruct)(PreDeco*, Edge*), int construction, int level) {
   PreDeco copy;
   Edge *edge;
   int i;
@@ -656,7 +660,7 @@ void try_construct(PreDeco *pd, void (*construct)(PreDeco*, Edge*), void (*destr
       if (copy.n0 <= 2 && copy.n0 + copy.n1 + copy.n2 <= 3) {
         copy.canonical = malloc(copy.nedges * sizeof(Edge*));
         if (canon(&copy, construction, edge)) {
-          grow(&copy);
+          grow(&copy, level + 1);
         }
         free(copy.canonical);
       }
@@ -665,7 +669,7 @@ void try_construct(PreDeco *pd, void (*construct)(PreDeco*, Edge*), void (*destr
   }
 }
 
-void try_cutconstruct(PreDeco *pd, void (*construct)(PreDeco*, Edge*, Edge*), void (*destruct)(PreDeco*, Edge*, Edge*), int construction) {
+void try_cutconstruct(PreDeco *pd, void (*construct)(PreDeco*, Edge*, Edge*), void (*destruct)(PreDeco*, Edge*, Edge*), int construction, int level) {
   PreDeco copy;
   Edge *edge, *other;
   int i;
@@ -678,7 +682,7 @@ void try_cutconstruct(PreDeco *pd, void (*construct)(PreDeco*, Edge*, Edge*), vo
         construct(&copy, edge, other);
         if (copy.n0 <= 2 && copy.n0 + copy.n1 + copy.n2 <= 3) {
           copy.canonical = malloc(copy.nedges * sizeof(Edge*));
-          if (canon(&copy, construction, edge)) grow(&copy);
+          if (canon(&copy, construction, edge)) grow(&copy, level + 1);
           free(copy.canonical);
         }
         destruct(&copy, edge, other);
@@ -687,26 +691,33 @@ void try_cutconstruct(PreDeco *pd, void (*construct)(PreDeco*, Edge*, Edge*), vo
   }
 }
 
-void grow(PreDeco *pd) {
+unsigned long int levelcount = 0;
+
+void grow(PreDeco *pd, int level) {
+  if (level == SPLIT_LEVEL) {
+    levelcount++;
+    if (level_index == MOD) level_index = 0;
+    if (level_index++ != RES) return;
+  }
   if (4 - 4 * pd->size + 2 * pd->nedges + 2 * pd->cuts > FACTOR) return;
-  if (ALL || pd->nedges >= FACTOR) {
+  if ((level >= SPLIT_LEVEL || RES == 0) && (ALL || pd->nedges >= FACTOR)) {
     select1(pd);
   }
-  try_construct(pd, construct1, destruct1, 1);
+  try_construct(pd, construct1, destruct1, 1, level);
   if (pd->n0 || pd->n1) return;
-  try_cutconstruct(pd, construct2, destruct2, 2);
+  try_cutconstruct(pd, construct2, destruct2, 2, level);
   if (pd->bridges) return;
-  try_cutconstruct(pd, construct3, destruct3, 3);
-  try_cutconstruct(pd, construct4, destruct4, 4);
-  try_construct(pd, construct5, destruct5, 5);
-  try_construct(pd, construct6, destruct6, 6);
-  try_construct(pd, construct7, destruct7, 7);
-  try_construct(pd, construct7b, destruct7b, 8);
-  try_construct(pd, construct8, destruct8, 9);
-  try_construct(pd, construct9, destruct9, 10);
+  try_cutconstruct(pd, construct3, destruct3, 3, level);
+  try_cutconstruct(pd, construct4, destruct4, 4, level);
+  try_construct(pd, construct5, destruct5, 5, level);
+  try_construct(pd, construct6, destruct6, 6, level);
+  try_construct(pd, construct7, destruct7, 7, level);
+  try_construct(pd, construct7b, destruct7b, 8, level);
+  try_construct(pd, construct8, destruct8, 9, level);
+  try_construct(pd, construct9, destruct9, 10, level);
   if (CONNECTIVITY > 1 && 4 * pd->size - pd->nedges - 4 <= 4) return;
   if (CONNECTIVITY > 2 && 4 * pd->size - pd->nedges - 4 <= 6) return;
-  try_construct(pd, construct10, destruct10, 11);
+  try_construct(pd, construct10, destruct10, 11, level);
 }
 
 void start_construction(PreDeco *pd) {
@@ -739,7 +750,7 @@ void start_construction(PreDeco *pd) {
 
   pd->extensions = 0;
 
-  grow(pd);
+  grow(pd, 0);
 
   pd->size = 4;
 
@@ -781,7 +792,7 @@ void start_construction(PreDeco *pd) {
   pd->deg[0] = pd->deg[1] = pd->deg[2] = pd->deg[3] = 2;
   pd->out[2] = pd->out[3] = 1;
 
-  if (FACTOR == 5 || (ALL && FACTOR > 5)) select1(pd);
+  if ((FACTOR == 5 || (ALL && FACTOR > 5)) && RES == 0) select1(pd);
 
   pd->size = 5;
 
@@ -820,7 +831,7 @@ void start_construction(PreDeco *pd) {
   pd->canonical[4] = inverse4;
   pd->canonical[5] = newedge4;
 
-  grow(pd);
+  grow(pd, 0);
 
   pd->size = 7;
 
@@ -866,7 +877,7 @@ void start_construction(PreDeco *pd) {
 
   pd->orbits = 4;
 
-  grow(pd);
+  grow(pd, 0);
 
   pd->size = 6;
   pd->nedges -= 2;
@@ -887,7 +898,7 @@ void start_construction(PreDeco *pd) {
 
   pd->orbits = 3;
 
-  grow(pd);
+  grow(pd, 0);
 
   free(pd->canonical);
 }
@@ -912,10 +923,13 @@ int main(int argc, char *argv[]) {
     {"c",           required_argument, 0, 'c'},
     {"output",      required_argument, 0, 'o'},
     {"help",        no_argument,       0, 'h'},
+    {"mod",         required_argument, 0, 'm'},
+    {"res",         required_argument, 0, 'r'},
+    {"split",       required_argument, 0, 's'},
   };
 
   while (1) {
-    c = getopt_long(argc, argv, "dac:o:h", long_options, &option_index);
+    c = getopt_long(argc, argv, "dac:o:hm:r:s:", long_options, &option_index);
     if (c == -1) break;
     switch (c) {
       case 'd':
@@ -937,6 +951,15 @@ int main(int argc, char *argv[]) {
       case 'h':
         write_help();
         return 0;
+      case 'm':
+        MOD = strtoul(optarg, NULL, 10);
+        break;
+      case 'r':
+        RES = strtoul(optarg, NULL, 10);
+        break;
+      case 's':
+        SPLIT_LEVEL = strtoul(optarg, NULL, 10);
+        break;
       default:
         write_help();
         return 1;
