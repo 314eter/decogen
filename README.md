@@ -16,20 +16,15 @@ decogen [-d] [-a] [-c 1|2|3] [-o OUTFILE] FACTOR
 
 ## Output format (decocode)
 
-```
-2
-  *
-  | `   1
-0 |   `
-  |     `
-  *-------*
-1     2     0
+The output is similar to [planarcode](https://users.cecs.anu.edu.au/~bdm/plantri/plantri-guide.txt).
+It starts with the header `>>deco_code<<`, followed by a sequence of byte-encoded decorations.
 
-Format: ">>deco_code<<{planarcode}{kind}{edge}{border}"
+```
+Format: "{planarcode}{kind}{edge}{border}"
 
 {planarcode}: planarcode of edges of type 1
 
-{kind}: 1 byte, describing the situation in corner 1
+{kind}: 1 byte, describing the situation in v1
  0: the vertex has type 1, and degree 2
     the edge on side 0 has type 0
  1: vertex has type 1, and degree 2
@@ -44,8 +39,14 @@ Format: ">>deco_code<<{planarcode}{kind}{edge}{border}"
      *---b         a---b
 
 {border}: describes the types of edges on the border
- direction: corner 1 -> corner 2 -> corner 0 -> corner 1
+ direction: v1 -> v2 -> v0 -> v1
  1: edge of type 1
- 2: edge of type 0 or 2
- 0: corner
+ 2: two edges of type 0 or 2
+ 0: v0/v1/v2
 ```
+
+### Examples
+
+| truncate                  | chamfer                 |
+|:-------------------------:|:-----------------------:|
+| ![truncate](truncate.svg) | ![chamfer](chamfer.svg) |
